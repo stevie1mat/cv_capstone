@@ -1,4 +1,4 @@
 streamlit
-tensorflow  # Only if you're using PyTorch for the YOLO model
+tensorflow
 numpy
 Pillow
