@@ -1,23 +1,23 @@
 import streamlit as st
-import tensorflow as tf
-from PIL import Image
+import cv2
 import numpy as np
+from PIL import Image
+import yolov5
 
-# Load the saved YOLO model
-model = tf.keras.models.load_model('yolov8n.pt')
-
-def preprocess_image(image):
-    # Preprocess the image to match the model input
-    img_array = np.array(image)
-    img_array = tf.image.resize(img_array, (416, 416))  # Assuming YOLO input size is 416x416
-    img_array = img_array / 255.0  # Normalize to [0,1]
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-    return img_array
+# Load YOLOv5 model (assuming YOLOv5 is being used)
+model = yolov5.load('yolov5s')  # You can replace 'yolov5s' with your custom model path if needed
 
 def predict(image):
-    img_array = preprocess_image(image)
-    predictions = model.predict(img_array)
-    return predictions
+    # Convert PIL image to numpy array
+    img_array = np.array(image)
+    
+    # Perform detection
+    results = model(img_array)
+    
+    # Convert results to a pandas DataFrame for easy display and processing
+    df_results = results.pandas().xyxy[0]
+    
+    return df_results
 
 st.title("Grocery Detection App")
 st.write("Upload an image to detect groceries")
@@ -30,9 +30,9 @@ if uploaded_file is not None:
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     
     # Perform prediction
-    predictions = predict(image)
+    results = predict(image)
     
-    # Display predictions (you might want to add your own post-processing to visualize results)
+    # Display predictions
     st.write("Predictions:")
-    st.write(predictions)
+    st.write(results)
 
