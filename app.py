@@ -1,11 +1,11 @@
 import streamlit as st
-import cv2
-import numpy as np
 from PIL import Image
-import yolov5
+import numpy as np
+import cv2
+from ultralytics import YOLO
 
-# Load YOLOv5 model (assuming YOLOv5 is being used)
-model = yolov5.load('yolov5s')  # You can replace 'yolov5s' with your custom model path if needed
+# Load the trained YOLO model
+model = YOLO('yolov8n.pt')  # Replace with your trained model path
 
 def predict(image):
     # Convert PIL image to numpy array
@@ -14,10 +14,12 @@ def predict(image):
     # Perform detection
     results = model(img_array)
     
-    # Convert results to a pandas DataFrame for easy display and processing
-    df_results = results.pandas().xyxy[0]
+    # Extract bounding boxes and class labels
+    boxes = results[0].boxes.xyxy.cpu().numpy()  # xyxy format
+    scores = results[0].boxes.conf.cpu().numpy()  # confidence scores
+    classes = results[0].boxes.cls.cpu().numpy()  # class labels
     
-    return df_results
+    return boxes, scores, classes
 
 st.title("Grocery Detection App")
 st.write("Upload an image to detect groceries")
@@ -30,9 +32,14 @@ if uploaded_file is not None:
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     
     # Perform prediction
-    results = predict(image)
+    boxes, scores, classes = predict(image)
     
-    # Display predictions
-    st.write("Predictions:")
-    st.write(results)
-
+    # Draw bounding boxes on the image
+    img_with_boxes = np.array(image)
+    for box, score, cls in zip(boxes, scores, classes):
+        cv2.rectangle(img_with_boxes, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+        label = f'Class: {int(cls)}, Score: {score:.2f}'
+        cv2.putText(img_with_boxes, label, (int(box[0]), int(box[1]-10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
+    # Display the image with bounding boxes
+    st.image(img_with_boxes, caption='Detected Groceries', use_column_width=True)
